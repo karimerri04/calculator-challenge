@@ -133,4 +133,23 @@ class CalculationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").value("10"));
     }
+    @Test
+    void shouldValidateExpressionMaximumLength() throws Exception {
+        String expression = "1".repeat(1001);
+
+        mockMvc.perform(
+                        post("/api/v1/calculations")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                          "expression": "%s"
+                                        }
+                                        """.formatted(expression))
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message")
+                        .value("expression must not exceed 1000 characters"));
+    }
+
 }

@@ -12,6 +12,7 @@ import java.util.Objects;
 public final class ExpressionEvaluator {
 
     private static final BigDecimal ONE = BigDecimal.ONE;
+    private static final int MAX_ABSOLUTE_EXPONENT = 10_000;
 
     private final EvaluationContext context;
 
@@ -90,6 +91,11 @@ public final class ExpressionEvaluator {
         try {
             intExponent = normalizedExponent.intValueExact();
         } catch (ArithmeticException exception) {
+            throw CalculationException.exponentOutOfRange();
+        }
+
+        if (intExponent > MAX_ABSOLUTE_EXPONENT
+                || intExponent < -MAX_ABSOLUTE_EXPONENT) {
             throw CalculationException.exponentOutOfRange();
         }
 

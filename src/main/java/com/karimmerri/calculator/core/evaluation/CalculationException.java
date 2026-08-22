@@ -24,7 +24,7 @@ public final class CalculationException extends RuntimeException {
 
     public static CalculationException exponentOutOfRange() {
         return new CalculationException(
-                "Exponent is outside the supported integer range"
+                "Exponent is outside the supported range [-10000, 10000]"
         );
     }
 }

@@ -68,3 +68,10 @@ Be ready to state what was intentionally not implemented:
 
 Potential next steps should be driven by requirements, not speculative
 abstractions.
+
+## Frontend boundary (future lot)
+
+The planned browser UI is an inbound adapter. It sends the expression to the
+REST endpoint and displays the returned result or stable API error. Parsing and
+calculation remain exclusively in the Java core, avoiding duplicated rules
+between Java and TypeScript.

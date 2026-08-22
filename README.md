@@ -1,12 +1,13 @@
-# Calculator Challenge — Lot 6
+# Calculator Challenge
 
-> Reference implementation for study and local practice.
-> Do not submit it unchanged if the recruiting challenge prohibits code produced by others.
+> Study/reference implementation. If the recruiting exercise restricts code
+> produced by third parties or AI tools, do not submit this repository unchanged.
+> Be able to explain, reproduce and defend every design decision and line you use.
 
 ## Goal
 
 Parse and evaluate mathematical expressions received as strings without using
-an external parser/evaluator library.
+an external parser or expression-evaluation library.
 
 ## Architecture
 
@@ -24,14 +25,18 @@ Calculator application facade
   `-> Evaluator ---> BigDecimal
 ```
 
-The calculator core remains pure Java and has no Spring annotations.
+The calculator core is pure Java and contains no Spring annotations.
 
-Detailed documentation:
+Documentation:
 
 - `docs/architecture.md`
+- `docs/testing-strategy.md`
+- `docs/api-contract.md`
+- `docs/frontend-plan.md`
+- `docs/presentation-guide.md`
 - `docs/adr/0001-pure-java-core.md`
 - `docs/adr/0002-recursive-descent-parser.md`
-- `docs/presentation-guide.md`
+- `docs/adr/0003-bigdecimal.md`
 
 ## Stack
 
@@ -69,8 +74,16 @@ sqrt(4)          -> 2
 1/0              -> error
 ```
 
-The contradictory README example `1+1 -> 1` is intentionally not implemented
-as a special case.
+The contradictory challenge example `1+1 -> 1` is intentionally not
+implemented as a special case.
+
+### Deliberate limits
+
+- decimal syntax is strict: `3.14` is valid, while `5.`, `.5` and `1.2.3` are rejected;
+- only integer exponents are supported;
+- integer exponents are limited to the range `[-10000, 10000]`;
+- square root of a negative number is rejected;
+- division by zero is rejected.
 
 ## Grammar
 
@@ -84,6 +97,14 @@ primary    -> NUMBER
            | IDENTIFIER "(" expression ")"
 ```
 
+This intentionally gives:
+
+```text
+2^3^2   -> 512
+-2^2    -> -4
+(-2)^2  -> 4
+```
+
 ## REST API
 
 ```http
@@ -95,7 +116,7 @@ Request:
 
 ```json
 {
-  "expression": "2 + 2 * 5 + 5"
+  "expression": "sqrt(4) + 2^3"
 }
 ```
 
@@ -103,31 +124,21 @@ Response:
 
 ```json
 {
-  "expression": "2 + 2 * 5 + 5",
-  "result": "17"
+  "expression": "sqrt(4) + 2^3",
+  "result": "10"
 }
 ```
 
-### Errors
-
-Stable external error codes:
+Error codes:
 
 - `VALIDATION_ERROR`
 - `LEXICAL_ERROR`
 - `SYNTAX_ERROR`
 - `CALCULATION_ERROR`
 
-Example:
+See `docs/api-contract.md` for the complete boundary contract.
 
-```json
-{
-  "code": "CALCULATION_ERROR",
-  "message": "Division by zero is not allowed",
-  "path": "/api/v1/calculations"
-}
-```
-
-## Verify
+## Test and verify
 
 Canonical command:
 
@@ -144,7 +155,8 @@ Coverage report:
 target/site/jacoco/index.html
 ```
 
-GitHub Actions executes the same `clean verify` command on Java 21.
+The test strategy covers individual primitives, combined operators, longer
+expressions and nested structures. See `docs/testing-strategy.md`.
 
 ## Run locally
 
@@ -166,16 +178,15 @@ GET http://localhost:8080/actuator/health
 
 ## Docker
 
-Build:
-
 ```bash
-docker build -t calculator-challenge:lot6 .
-```
-
-Run:
-
-```bash
-docker run --rm -p 8080:8080 calculator-challenge:lot6
+docker build -t calculator-challenge .
+docker run --rm -p 8080:8080 calculator-challenge
 ```
 
 The image is multi-stage and the application runs as a non-root user.
+
+## Frontend
+
+A React + TypeScript + Vite frontend is planned as the next lot under
+`frontend/`. It will call this REST API and will not duplicate parsing or
+calculation rules in JavaScript. See `docs/frontend-plan.md`.

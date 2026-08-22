@@ -1,6 +1,8 @@
 package com.karimmerri.calculator.core.lexer;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 
@@ -26,9 +28,41 @@ class LexerTest {
     }
 
     @Test
+    void shouldTokenizeOperatorsAndIgnoreWhitespace() {
+        assertThat(typesOf(" 1 + 2 - 3 * 4 / 5 ^ 6 "))
+                .containsExactly(
+                        TokenType.NUMBER,
+                        TokenType.PLUS,
+                        TokenType.NUMBER,
+                        TokenType.MINUS,
+                        TokenType.NUMBER,
+                        TokenType.MULTIPLY,
+                        TokenType.NUMBER,
+                        TokenType.DIVIDE,
+                        TokenType.NUMBER,
+                        TokenType.POWER,
+                        TokenType.NUMBER,
+                        TokenType.EOF
+                );
+    }
+
+    @Test
     void shouldPreserveIdentifierLexeme() {
         assertThat(lexer.tokenize("sqrt(4)").get(0))
                 .isEqualTo(new Token(TokenType.IDENTIFIER, "sqrt", 0));
+    }
+
+    @Test
+    void shouldAcceptStrictDecimal() {
+        assertThat(lexer.tokenize("3.14").get(0))
+                .isEqualTo(new Token(TokenType.NUMBER, "3.14", 0));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"5.", ".5", "1.2.3"})
+    void shouldRejectMalformedDecimals(String expression) {
+        assertThatThrownBy(() -> lexer.tokenize(expression))
+                .isInstanceOf(LexerException.class);
     }
 
     @Test
