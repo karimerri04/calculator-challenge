@@ -70,6 +70,13 @@ Health endpoint:
 GET http://localhost:8080/actuator/health
 ```
 
+If port `8080` is unavailable, Spring Boot can be started with `SERVER_PORT`, for example in PowerShell:
+
+```powershell
+$env:SERVER_PORT="8081"
+mvn spring-boot:run
+```
+
 JaCoCo report:
 
 ```text
@@ -84,7 +91,7 @@ Start the backend first, then:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm test
 npm run build
 npm run dev
@@ -92,7 +99,7 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-During development, Vite proxies `/api` to the backend on port `8080`. The frontend does not reimplement the expression grammar or calculation semantics.
+During development, Vite proxies `/api` to the backend on port `8080` by default. To use another backend address, copy `frontend/.env.example` to `frontend/.env` and set `VITE_DEV_PROXY_TARGET`. The frontend does not reimplement the expression grammar or calculation semantics.
 
 ## Docker
 
