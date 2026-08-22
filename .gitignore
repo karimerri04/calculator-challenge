@@ -1,7 +1,27 @@
-target/
+# Java / Maven
+backend/target/
+*.class
+
+# IDEs
 .idea/
+backend/.idea/
+frontend/.idea/
 *.iml
 .classpath
 .project
 .settings/
+.vscode/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.vite/
+
+# OS / local
 .DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
+!.env.example

@@ -3,7 +3,19 @@
 ## Goal
 
 Keep the calculator rules independent from Spring while exposing the application
-through a small HTTP adapter.
+through a small HTTP adapter and a thin browser client.
+
+## Repository boundaries
+
+```text
+calculator-challenge/
+├── backend/   Java 21, Spring Boot, parser and evaluator
+├── frontend/  React, TypeScript and Vite
+└── docs/      Architecture and delivery documentation
+```
+
+The frontend depends on the backend HTTP contract. It does not depend on, or
+duplicate, the Java parser/evaluator implementation.
 
 ## Runtime flow
 
@@ -95,6 +107,7 @@ The core owns mathematical syntax and evaluation rules.
 ## Verification pipeline
 
 ```text
+cd backend
 mvn clean verify
   |
   +--> compile

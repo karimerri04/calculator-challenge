@@ -49,6 +49,7 @@ why the response result is serialized as a JSON string.
 Run:
 
 ```bash
+cd backend
 mvn clean verify
 ```
 
@@ -56,7 +57,15 @@ Show that the same command is used by GitHub Actions and that JaCoCo enforces an
 80% line-coverage floor. Then explain the multi-stage Docker image and
 `/actuator/health`.
 
-## 8. Trade-offs and next steps — 3 to 5 min
+## 8. Frontend boundary — 3 to 5 min
+
+Show the React interface as a thin inbound adapter. It sends the expression to
+the REST endpoint and displays the returned result or stable API error. Parsing
+and calculation remain exclusively in the Java core, avoiding duplicated rules
+between Java and TypeScript. Mention the Vite development proxy and the bounded
+local history.
+
+## 9. Trade-offs and next steps — 3 to 5 min
 
 Be ready to state what was intentionally not implemented:
 
@@ -68,10 +77,3 @@ Be ready to state what was intentionally not implemented:
 
 Potential next steps should be driven by requirements, not speculative
 abstractions.
-
-## Frontend boundary (future lot)
-
-The planned browser UI is an inbound adapter. It sends the expression to the
-REST endpoint and displays the returned result or stable API error. Parsing and
-calculation remain exclusively in the Java core, avoiding duplicated rules
-between Java and TypeScript.
