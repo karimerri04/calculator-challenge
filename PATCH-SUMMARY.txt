@@ -1,0 +1,33 @@
+LOT 5 ADDS
+
+CONFIG
+- CalculatorConfiguration
+
+REST ADAPTER
+- CalculationController
+- CalculationRequest
+- CalculationResponse
+- ApiError
+- RestExceptionHandler
+
+VALIDATION
+- expression required
+- expression cannot be blank
+- max length 1000
+
+HTTP
+POST /api/v1/calculations
+
+TESTS
+- success
+- advanced expression
+- division by zero
+- invalid syntax
+- invalid lexical character
+- blank request
+- missing expression
+
+MODERNIZATION
+- Spring Boot 4.1
+- spring-boot-starter-webmvc
+- WebMvcTest from Spring Boot 4 package
