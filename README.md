@@ -1,56 +1,34 @@
 # Calculator Challenge
 
-> Study/reference implementation. If the recruiting exercise restricts code
-> produced by third parties or AI tools, do not submit this repository unchanged.
-> Be able to explain, reproduce and defend every design decision and line you use.
+String-based calculator implemented as a small full-stack application.
 
-## Goal
+The project parses mathematical expressions without an external parser/evaluator library and exposes the calculation engine through a REST API and a React interface.
 
-Parse and evaluate mathematical expressions received as strings without using
-an external parser or expression-evaluation library.
+## Repository structure
+
+```text
+calculator-challenge/
+├── backend/              Java 21 / Spring Boot API and calculation engine
+├── frontend/             React / TypeScript / Vite user interface
+├── docs/                 Architecture, API contract, testing strategy and ADRs
+└── .github/workflows/    Continuous integration
+```
 
 ## Architecture
 
 ```text
-HTTP
-  |
-  v
-REST adapter — Spring MVC
-  |
-  v
+React UI
+   |
+   | POST /api/v1/calculations
+   v
+Spring MVC adapter
+   v
 Calculator application facade
-  |
-  +-> Lexer -------> List<Token>
-  +-> Parser ------> AST
-  `-> Evaluator ---> BigDecimal
+   v
+Lexer -> Parser -> AST -> Evaluator -> BigDecimal
 ```
 
-The calculator core is pure Java and contains no Spring annotations.
-
-Documentation:
-
-- `docs/architecture.md`
-- `docs/testing-strategy.md`
-- `docs/api-contract.md`
-- `docs/frontend-plan.md`
-- `docs/presentation-guide.md`
-- `docs/adr/0001-pure-java-core.md`
-- `docs/adr/0002-recursive-descent-parser.md`
-- `docs/adr/0003-bigdecimal.md`
-
-## Stack
-
-- Java 21 LTS
-- Spring Boot 4.1.1
-- Spring MVC
-- Spring Boot Actuator
-- Jakarta Validation
-- Maven
-- JUnit / AssertJ / MockMvc
-- JaCoCo
-- BigDecimal
-- Docker
-- GitHub Actions
+The calculation core is pure Java and has no Spring dependency.
 
 ## Supported expressions
 
@@ -58,14 +36,10 @@ Documentation:
 1 + 2            -> 3
 1 + -1           -> 0
 -1 - -1          -> 0
-5 - 4            -> 1
-5 * 2            -> 10
 (2 + 5) * 3      -> 21
-10 / 2           -> 5
 2 + 2 * 5 + 5    -> 17
 2.8 * 3 - 1      -> 7.4
 2^8              -> 256
-2^8*5-1          -> 1279
 2^3^2            -> 512
 -2^2             -> -4
 (-2)^2           -> 4
@@ -74,97 +48,17 @@ sqrt(4)          -> 2
 1/0              -> error
 ```
 
-The contradictory challenge example `1+1 -> 1` is intentionally not
-implemented as a special case.
+## Backend
 
-### Deliberate limits
-
-- decimal syntax is strict: `3.14` is valid, while `5.`, `.5` and `1.2.3` are rejected;
-- only integer exponents are supported;
-- integer exponents are limited to the range `[-10000, 10000]`;
-- square root of a negative number is rejected;
-- division by zero is rejected.
-
-## Grammar
-
-```text
-expression -> term (("+" | "-") term)*
-term       -> unary (("*" | "/") unary)*
-unary      -> "-" unary | power
-power      -> primary ("^" unary)?
-primary    -> NUMBER
-           | "(" expression ")"
-           | IDENTIFIER "(" expression ")"
-```
-
-This intentionally gives:
-
-```text
-2^3^2   -> 512
--2^2    -> -4
-(-2)^2  -> 4
-```
-
-## REST API
-
-```http
-POST /api/v1/calculations
-Content-Type: application/json
-```
-
-Request:
-
-```json
-{
-  "expression": "sqrt(4) + 2^3"
-}
-```
-
-Response:
-
-```json
-{
-  "expression": "sqrt(4) + 2^3",
-  "result": "10"
-}
-```
-
-Error codes:
-
-- `VALIDATION_ERROR`
-- `LEXICAL_ERROR`
-- `SYNTAX_ERROR`
-- `CALCULATION_ERROR`
-
-See `docs/api-contract.md` for the complete boundary contract.
-
-## Test and verify
-
-Canonical command:
+Requirements: Java 21 and Maven.
 
 ```bash
+cd backend
 mvn clean verify
-```
-
-This runs the test suite, generates JaCoCo coverage, and enforces an 80% line
-coverage floor.
-
-Coverage report:
-
-```text
-target/site/jacoco/index.html
-```
-
-The test strategy covers individual primitives, combined operators, longer
-expressions and nested structures. See `docs/testing-strategy.md`.
-
-## Run locally
-
-```bash
 mvn spring-boot:run
 ```
 
-Calculator endpoint:
+REST endpoint:
 
 ```text
 POST http://localhost:8080/api/v1/calculations
@@ -176,17 +70,60 @@ Health endpoint:
 GET http://localhost:8080/actuator/health
 ```
 
-## Docker
+JaCoCo report:
 
-```bash
-docker build -t calculator-challenge .
-docker run --rm -p 8080:8080 calculator-challenge
+```text
+backend/target/site/jacoco/index.html
 ```
-
-The image is multi-stage and the application runs as a non-root user.
 
 ## Frontend
 
-A React + TypeScript + Vite frontend is planned as the next lot under
-`frontend/`. It will call this REST API and will not duplicate parsing or
-calculation rules in JavaScript. See `docs/frontend-plan.md`.
+Requirements: Node.js 22+.
+
+Start the backend first, then:
+
+```bash
+cd frontend
+npm install
+npm test
+npm run build
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+During development, Vite proxies `/api` to the backend on port `8080`. The frontend does not reimplement the expression grammar or calculation semantics.
+
+## Docker
+
+Build the backend image from the repository root:
+
+```bash
+docker build -t calculator-challenge-backend backend
+```
+
+Run it:
+
+```bash
+docker run --rm -p 8080:8080 calculator-challenge-backend
+```
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [API contract](docs/api-contract.md)
+- [Testing strategy](docs/testing-strategy.md)
+- [Frontend architecture](docs/frontend-plan.md)
+- [Presentation guide](docs/presentation-guide.md)
+- [Architecture Decision Records](docs/adr/)
+
+## Main design decisions
+
+- Java 21 and `BigDecimal` for deterministic decimal arithmetic.
+- Hand-written lexer and recursive-descent parser.
+- Immutable AST using sealed interfaces and records.
+- Pure Java calculation core, isolated from Spring.
+- REST adapter responsible for transport validation and HTTP error mapping.
+- React frontend as a thin API client, not a second calculation engine.
+- `mvn clean verify` with JaCoCo as the backend quality gate.
+- GitHub Actions validates backend and frontend independently.

@@ -9,24 +9,57 @@ permissions:
   contents: read
 
 jobs:
-  verify:
-    name: Verify Java 21 build
+  backend:
+    name: Verify Java 21 backend
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
+    defaults:
+      run:
+        working-directory: backend
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Set up Java 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
+          cache-dependency-path: backend/pom.xml
 
       - name: Run tests and quality gate
         run: mvn --batch-mode --no-transfer-progress clean verify
 
       - name: Build Docker image
-        run: docker build --tag calculator-challenge:ci .
+        working-directory: .
+        run: docker build --tag calculator-challenge-backend:ci backend
+
+  frontend:
+    name: Verify React frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend unit tests
+        run: npm test
+
+      - name: Build production frontend
+        run: npm run build

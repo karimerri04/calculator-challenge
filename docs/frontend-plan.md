@@ -1,15 +1,25 @@
-# Frontend Integration Plan
+# Frontend Architecture and Integration
 
-A frontend is planned as a separate delivery lot. It must remain an adapter of
-the calculator API rather than a second calculator implementation.
+## Status
 
-## Proposed stack
+Implemented in Lot 8 under `frontend/`.
 
-- React
+## Purpose
+
+The frontend is deliberately a thin inbound adapter over the Java calculator.
+It improves usability and demonstrates end-to-end integration without creating
+a second expression engine in TypeScript.
+
+## Stack
+
+- React 19
 - TypeScript
 - Vite
-- native `fetch` or a very small API client wrapper
-- component tests only where they add value
+- native Fetch API
+- Vitest for focused unit tests
+
+No state-management or HTTP-client library is introduced because the page does
+not need one.
 
 ## Responsibility split
 
@@ -18,42 +28,75 @@ Browser UI
    |
    | POST /api/v1/calculations
    v
-Spring REST adapter
+Spring MVC adapter
    v
-Calculator application/core
+Calculator application facade
+   v
+Lexer -> Parser -> AST -> Evaluator -> BigDecimal
 ```
 
-The frontend is responsible for:
+### Frontend owns
 
-- expression input;
-- submit/loading states;
-- displaying the exact result string;
-- displaying API errors clearly;
-- keyboard accessibility and responsive layout.
+- expression input and submission state;
+- rendering exact result strings returned by the API;
+- clear presentation of API error codes/messages;
+- reusable example expressions;
+- a bounded browser-local history of successful calculations;
+- keyboard-accessible and responsive interaction.
 
-The backend remains the source of truth for:
+### Backend remains authoritative for
 
-- tokenization;
-- grammar;
-- operator precedence;
-- arithmetic semantics;
-- validation of supported expressions.
+- lexical rules;
+- grammar and precedence;
+- unary/binary operator semantics;
+- power and square-root semantics;
+- validation of supported expressions;
+- numeric precision and calculation errors.
 
-## Local development
+This boundary avoids semantic drift between Java and JavaScript implementations.
 
-Prefer a Vite development proxy for `/api` to `http://localhost:8080`. This
-avoids adding broad CORS rules to the backend solely for local development.
-Production can serve both applications behind the same origin or configure a
-narrow explicit CORS policy if deployment requires separate origins.
+## API client
 
-## Repository layout
+`frontend/src/api/calculations.ts` is the only code that knows the calculation
+endpoint. It maps network failures to `NETWORK_ERROR` while preserving the
+backend's stable error codes unchanged.
 
-The Maven backend stays at repository root for the Java challenge. The future
-frontend can be added under:
+## Local development proxy
+
+`vite.config.ts` proxies `/api` to `http://localhost:8080`.
 
 ```text
-frontend/
+Browser :5173 -> /api -> Vite proxy -> Spring Boot :8080
 ```
 
-This avoids moving the already-reviewed backend while still allowing a simple
-monorepo and separate CI jobs.
+This is preferable to adding `@CrossOrigin("*")` solely for development.
+
+## Local history
+
+Only successful calculations are stored. The list:
+
+- uses `localStorage`;
+- is capped at eight entries;
+- contains no server-side persistence;
+- can be cleared by the user;
+- is tested independently from React rendering.
+
+## Tests
+
+Frontend unit tests intentionally target its own responsibilities:
+
+- successful REST response mapping;
+- preservation of backend error contracts;
+- network-failure behavior;
+- bounded history;
+- corrupt local-storage recovery.
+
+Parser/evaluator test cases stay in Java. Repeating them in TypeScript would test
+a duplicate implementation that the architecture explicitly avoids.
+
+## Production note
+
+The cleanest deployment is same-origin: reverse proxy `/api` to Spring Boot and
+serve the compiled frontend from the same public host. If separate origins are
+required, configure a narrow backend CORS policy and set `VITE_API_BASE_URL` at
+frontend build time.
