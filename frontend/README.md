@@ -11,16 +11,15 @@ backend error contract.
 ## Requirements
 
 - Node.js 22 or newer
-- backend running on `http://localhost:8080` for local development
+- backend running locally
 
 ## Install
 
 ```bash
-npm install
+npm ci
 ```
 
-`npm install` will generate `package-lock.json`. Commit that lock file before
-final delivery so CI can be changed to `npm ci` in the final audit lot.
+The committed `package-lock.json` keeps CI and local installs reproducible.
 
 ## Run
 
@@ -30,8 +29,14 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-Vite proxies `/api` to `http://localhost:8080`; no permissive CORS rule is
-needed for local development.
+By default, Vite proxies `/api` to `http://localhost:8080`. If the backend uses
+another port, copy `.env.example` to `.env` and change:
+
+```text
+VITE_DEV_PROXY_TARGET=http://localhost:8081
+```
+
+No permissive CORS rule is needed for local development.
 
 ## Verify
 
