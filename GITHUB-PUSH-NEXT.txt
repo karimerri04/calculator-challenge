@@ -1,0 +1,30 @@
+Calculator Challenge — GitHub push
+
+Prepared history:
+
+main
+  d13d0ee feat: implement calculator core and REST API
+  c0ccccb ci: add quality gate, Docker and architecture docs
+
+chore/lot7-finalization
+  2bbaa88 test: harden coverage and document backend contract
+
+GitHub repository to create:
+- Owner: karimerri04
+- Name: calculator-challenge
+- Visibility: Private
+- Do not add a README, .gitignore or license when creating it.
+
+After extracting calculator-challenge-git-repository.zip:
+
+  cd calculator-challenge-git
+  git remote add origin https://github.com/karimerri04/calculator-challenge.git
+  git push -u origin main
+  git push -u origin chore/lot7-finalization
+
+Do not merge chore/lot7-finalization into main until `mvn clean verify` passes locally.
+After validation, the frontend should start from the validated backend as a new branch, for example:
+
+  git switch main
+  git merge --no-ff chore/lot7-finalization
+  git switch -c feature/frontend
