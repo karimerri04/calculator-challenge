@@ -1,11 +1,11 @@
 package com.karimmerri.calculator.core.evaluation;
 
-import com.karimmerri.calculator.core.ast.BinaryExpression;
-import com.karimmerri.calculator.core.ast.Expression;
-import com.karimmerri.calculator.core.ast.FunctionExpression;
-import com.karimmerri.calculator.core.ast.NumberExpression;
-import com.karimmerri.calculator.core.function.FunctionName;
-import com.karimmerri.calculator.core.operator.BinaryOperator;
+import com.karimmerri.calculator.core.expression.BinaryExpression;
+import com.karimmerri.calculator.core.expression.BinaryOperator;
+import com.karimmerri.calculator.core.expression.Expression;
+import com.karimmerri.calculator.core.expression.FunctionExpression;
+import com.karimmerri.calculator.core.expression.FunctionName;
+import com.karimmerri.calculator.core.expression.NumberExpression;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

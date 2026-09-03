@@ -5,7 +5,6 @@ export const HISTORY_STORAGE_KEY = "calculator-challenge.history.v1";
 
 export type CalculationHistoryEntry = CalculationResponse & {
   id: string;
-  createdAt: string;
 };
 
 export function addHistoryEntry(
@@ -16,8 +15,7 @@ export function addHistoryEntry(
   const entry: CalculationHistoryEntry = {
     id: `${now.getTime()}-${calculation.expression}-${calculation.result}`,
     expression: calculation.expression,
-    result: calculation.result,
-    createdAt: now.toISOString()
+    result: calculation.result
   };
 
   return [entry, ...history].slice(0, HISTORY_LIMIT);
@@ -34,6 +32,7 @@ export function loadHistory(storage: Pick<Storage, "getItem">): CalculationHisto
     const parsed = JSON.parse(raw) as unknown;
     return isHistory(parsed) ? parsed.slice(0, HISTORY_LIMIT) : [];
   } catch {
+    // Corrupted browser storage must not prevent the calculator from starting.
     return [];
   }
 }
@@ -54,8 +53,7 @@ function isHistory(value: unknown): value is CalculationHistoryEntry[] {
         entry !== null &&
         typeof (entry as CalculationHistoryEntry).id === "string" &&
         typeof (entry as CalculationHistoryEntry).expression === "string" &&
-        typeof (entry as CalculationHistoryEntry).result === "string" &&
-        typeof (entry as CalculationHistoryEntry).createdAt === "string"
+        typeof (entry as CalculationHistoryEntry).result === "string"
     )
   );
 }

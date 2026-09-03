@@ -1,36 +1,89 @@
 # Calculator Challenge
 
-String-based calculator implemented as a small full-stack application.
+A small full-stack calculator that evaluates mathematical expressions supplied as strings.
 
-The project parses mathematical expressions without an external parser/evaluator library and exposes the calculation engine through a REST API and a React interface.
-
-## Repository structure
-
-```text
-calculator-challenge/
-├── backend/              Java 21 / Spring Boot API and calculation engine
-├── frontend/             React / TypeScript / Vite user interface
-├── docs/                 Architecture, API contract, testing strategy and ADRs
-└── .github/workflows/    Continuous integration
-```
+The implementation deliberately separates lexical analysis, parsing and evaluation instead of relying on an expression-evaluation library. The goal is to keep the calculation rules explicit, testable and independent from the web framework.
 
 ## Architecture
 
 ```text
-React UI
-   |
-   | POST /api/v1/calculations
-   v
+React / TypeScript
+       |
+       | POST /api/v1/calculations
+       v
 Spring MVC adapter
-   v
-Calculator application facade
-   v
-Lexer -> Parser -> AST -> Evaluator -> BigDecimal
+       |
+       v
+Calculator (application facade)
+       |
+       v
+String -> Lexer -> Tokens -> Parser -> AST -> ExpressionEvaluator -> BigDecimal
 ```
 
-The calculation core is pure Java and has no Spring dependency.
+The main dependency rule is:
 
-## Supported expressions
+```text
+REST / Spring -> application -> core
+```
+
+The calculation core is plain Java. Spring is used at the application boundary for HTTP, validation and dependency wiring.
+
+### Core responsibilities
+
+```text
+core/
+├── lexer/       String -> List<Token>
+├── parser/      List<Token> -> Expression AST
+├── expression/  Immutable AST model and supported operations
+└── evaluation/  Expression AST -> BigDecimal
+```
+
+`Parser` is stateless at component level. The mutable cursor required while parsing is isolated in a per-call `ParseSession`, so concurrent calculations do not share parser state.
+
+The AST is represented by a sealed `Expression` hierarchy using records. This gives the evaluator an exhaustive set of expression types:
+
+- `NumberExpression`
+- `UnaryExpression`
+- `BinaryExpression`
+- `FunctionExpression`
+
+## Grammar
+
+The parser is a hand-written recursive-descent parser:
+
+```text
+expression -> term (("+" | "-") term)*
+term       -> unary (("*" | "/") unary)*
+unary      -> "-" unary | power
+power      -> primary ("^" unary)?
+primary    -> NUMBER
+           | "(" expression ")"
+           | IDENTIFIER "(" expression ")"
+```
+
+This structure encodes precedence directly in the parser. Exponentiation is right-associative, so `2^3^2` is interpreted as `2^(3^2)`. Power also binds before unary minus, so `-2^2` evaluates to `-4`, while `(-2)^2` evaluates to `4`.
+
+## Numeric model
+
+Calculations use `BigDecimal` rather than binary floating-point arithmetic.
+
+The default evaluation context is:
+
+```java
+new MathContext(34, RoundingMode.HALF_EVEN)
+```
+
+This provides 34 significant digits of precision and a deterministic rounding policy for operations that require rounding.
+
+Supported operations include:
+
+```text
++  -  *  /  ^  sqrt(...)
+```
+
+Integer positive and negative exponents are supported. Fractional exponents are intentionally rejected. Division by zero and square roots of negative numbers are reported as calculation errors.
+
+## Examples
 
 ```text
 1 + 2            -> 3
@@ -42,13 +95,77 @@ The calculation core is pure Java and has no Spring dependency.
 2^8              -> 256
 2^3^2            -> 512
 -2^2             -> -4
-(-2)^2           -> 4
+(-2)^2            -> 4
 2^-2             -> 0.25
 sqrt(4)          -> 2
 1/0              -> error
 ```
 
-## Backend
+### Requirement ambiguity
+
+The supplied challenge examples contain `1+1 -> 1`, while the other examples describe conventional arithmetic. This implementation treats that case as an inconsistent example and returns `2`. In a client project, I would confirm the intended behavior before implementing a special rule.
+
+## REST API
+
+### Calculate
+
+```http
+POST /api/v1/calculations
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "expression": "2 + 2 * 5 + 5"
+}
+```
+
+Success:
+
+```json
+{
+  "expression": "2 + 2 * 5 + 5",
+  "result": "17"
+}
+```
+
+The result is serialized as a string so the textual `BigDecimal` representation is preserved at the API boundary.
+
+Handled validation and calculation failures return HTTP `400` with a stable error contract:
+
+```json
+{
+  "code": "SYNTAX_ERROR",
+  "message": "Expected expression at position 3 but found ''",
+  "path": "/api/v1/calculations"
+}
+```
+
+Error categories:
+
+```text
+VALIDATION_ERROR
+LEXICAL_ERROR
+SYNTAX_ERROR
+CALCULATION_ERROR
+```
+
+## Frontend
+
+The React client is intentionally thin. It:
+
+- sends the raw expression to the backend;
+- displays the returned result or API error;
+- provides expression shortcuts and examples;
+- keeps the last eight successful calculations in browser `localStorage`.
+
+Parsing and arithmetic are not duplicated in TypeScript. The Java backend remains the source of truth.
+
+## Run locally
+
+### Backend
 
 Requirements: Java 21 and Maven.
 
@@ -58,72 +175,76 @@ mvn clean verify
 mvn spring-boot:run
 ```
 
-REST endpoint:
+API:
 
 ```text
-POST http://localhost:8080/api/v1/calculations
+http://localhost:8080/api/v1/calculations
 ```
 
-Health endpoint:
+Health check:
 
 ```text
-GET http://localhost:8080/actuator/health
+http://localhost:8080/actuator/health
 ```
 
-JaCoCo report:
-
-```text
-backend/target/site/jacoco/index.html
-```
-
-## Frontend
+### Frontend
 
 Requirements: Node.js 22+.
 
-Start the backend first, then:
-
 ```bash
 cd frontend
-npm install
+npm ci
 npm test
 npm run build
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+Open:
 
-During development, Vite proxies `/api` to the backend on port `8080`. The frontend does not reimplement the expression grammar or calculation semantics.
+```text
+http://localhost:5173
+```
+
+During development, Vite proxies `/api` to `http://localhost:8080`.
+
+## Verification
+
+Backend:
+
+```bash
+cd backend
+mvn clean verify
+```
+
+The Maven verification phase runs the test suite, generates a JaCoCo report and enforces an 80% line-coverage floor.
+
+Frontend:
+
+```bash
+cd frontend
+npm test
+npm run build
+```
+
+GitHub Actions runs backend and frontend verification independently and also builds the backend Docker image.
 
 ## Docker
 
-Build the backend image from the repository root:
-
 ```bash
 docker build -t calculator-challenge-backend backend
-```
-
-Run it:
-
-```bash
 docker run --rm -p 8080:8080 calculator-challenge-backend
 ```
 
-## Documentation
+The image uses a multi-stage build, runs the application as a non-root user and exposes an Actuator-based health check.
 
-- [Architecture](docs/architecture.md)
-- [API contract](docs/api-contract.md)
-- [Testing strategy](docs/testing-strategy.md)
-- [Frontend architecture](docs/frontend-plan.md)
-- [Presentation guide](docs/presentation-guide.md)
-- [Architecture Decision Records](docs/adr/)
+## Design choices and trade-offs
 
-## Main design decisions
+- **Pure Java core:** calculation rules do not depend on Spring.
+- **Recursive-descent parser:** small grammar, explicit precedence, no parser dependency.
+- **Sealed AST + records:** closed, immutable expression model that works naturally with Java 21 pattern matching.
+- **`BigDecimal`:** decimal arithmetic with an explicit precision and rounding policy.
+- **External Spring wiring:** core and application classes remain ordinary Java objects.
+- **Stable API errors:** transport validation, lexical errors, syntax errors and calculation errors remain distinguishable.
+- **Thin frontend:** no duplicated parser or arithmetic rules.
 
-- Java 21 and `BigDecimal` for deterministic decimal arithmetic.
-- Hand-written lexer and recursive-descent parser.
-- Immutable AST using sealed interfaces and records.
-- Pure Java calculation core, isolated from Spring.
-- REST adapter responsible for transport validation and HTTP error mapping.
-- React frontend as a thin API client, not a second calculation engine.
-- `mvn clean verify` with JaCoCo as the backend quality gate.
-- GitHub Actions validates backend and frontend independently.
+Given more time, I would first clarify additional domain requirements before expanding the grammar—for example variables, multi-argument functions or fractional powers—rather than adding abstractions without a concrete need.

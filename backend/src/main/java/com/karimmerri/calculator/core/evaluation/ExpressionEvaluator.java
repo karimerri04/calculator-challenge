@@ -1,10 +1,10 @@
 package com.karimmerri.calculator.core.evaluation;
 
-import com.karimmerri.calculator.core.ast.BinaryExpression;
-import com.karimmerri.calculator.core.ast.Expression;
-import com.karimmerri.calculator.core.ast.FunctionExpression;
-import com.karimmerri.calculator.core.ast.NumberExpression;
-import com.karimmerri.calculator.core.ast.UnaryExpression;
+import com.karimmerri.calculator.core.expression.BinaryExpression;
+import com.karimmerri.calculator.core.expression.Expression;
+import com.karimmerri.calculator.core.expression.FunctionExpression;
+import com.karimmerri.calculator.core.expression.NumberExpression;
+import com.karimmerri.calculator.core.expression.UnaryExpression;
 
 import java.math.BigDecimal;
 import java.util.Objects;

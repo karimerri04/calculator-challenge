@@ -1,4 +1,4 @@
-package com.karimmerri.calculator.core.ast;
+package com.karimmerri.calculator.core.expression;
 
 import java.math.BigDecimal;
 import java.util.Objects;

@@ -55,8 +55,7 @@ describe("calculateExpression", () => {
     await expect(calculateExpression("1/0")).rejects.toMatchObject({
       name: "CalculationApiError",
       code: "CALCULATION_ERROR",
-      message: "Division by zero",
-      status: 400
+      message: "Division by zero"
     });
   });
 
@@ -65,6 +64,23 @@ describe("calculateExpression", () => {
 
     await expect(calculateExpression("1+2")).rejects.toMatchObject({
       code: "NETWORK_ERROR"
+    });
+  });
+
+  it("falls back to a stable HTTP error for a non-JSON error response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("Bad Gateway", {
+          status: 502,
+          headers: { "Content-Type": "text/plain" }
+        })
+      )
+    );
+
+    await expect(calculateExpression("1+2")).rejects.toMatchObject({
+      code: "HTTP_ERROR",
+      message: "The calculator service returned HTTP 502."
     });
   });
 });

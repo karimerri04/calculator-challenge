@@ -1,8 +1,13 @@
 package com.karimmerri.calculator.core.evaluation;
 
+import java.io.Serial;
+
 public final class CalculationException extends RuntimeException {
 
-    public CalculationException(String message) {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    private CalculationException(String message) {
         super(message);
     }
 

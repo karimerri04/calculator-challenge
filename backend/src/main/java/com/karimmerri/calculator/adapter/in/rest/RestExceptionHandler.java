@@ -4,12 +4,15 @@ import com.karimmerri.calculator.core.evaluation.CalculationException;
 import com.karimmerri.calculator.core.lexer.LexerException;
 import com.karimmerri.calculator.core.parser.ParserException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+// Spring MVC invokes the @ExceptionHandler methods through framework dispatch.
+@SuppressWarnings("unused")
 @RestControllerAdvice
 public class RestExceptionHandler {
 
@@ -46,7 +49,7 @@ public class RestExceptionHandler {
                 .getFieldErrors()
                 .stream()
                 .findFirst()
-                .map(error -> error.getDefaultMessage())
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .orElse("Invalid request");
 
         return badRequest("VALIDATION_ERROR", message, request);

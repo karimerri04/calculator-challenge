@@ -1,6 +1,4 @@
-package com.karimmerri.calculator.core.ast;
-
-import com.karimmerri.calculator.core.function.FunctionName;
+package com.karimmerri.calculator.core.expression;
 
 import java.util.Objects;
 

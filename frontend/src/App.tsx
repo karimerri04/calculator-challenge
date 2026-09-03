@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import {
   CalculationApiError,
   calculateExpression
@@ -33,7 +33,7 @@ export default function App() {
     loadHistory(window.localStorage)
   );
 
-  const errorTitle = useMemo(() => formatErrorCode(error?.code), [error]);
+  const errorTitle = formatErrorCode(error?.code);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -232,6 +232,8 @@ function formatErrorCode(code?: string): string {
       return "Calculation error";
     case "NETWORK_ERROR":
       return "Connection error";
+    case "HTTP_ERROR":
+      return "Service error";
     default:
       return "Request failed";
   }

@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Converts a raw mathematical expression into lexical tokens.
+ * Operator meaning is intentionally left to the parser.
+ */
 public final class Lexer {
 
     public List<Token> tokenize(String expression) {
@@ -34,14 +38,20 @@ public final class Lexer {
             current++;
         }
 
+        // Sentinel token: the parser can reason about end-of-input like any other token.
         tokens.add(new Token(TokenType.EOF, "", expression.length()));
         return List.copyOf(tokens);
     }
 
-    private int readNumber(String expression, int start, List<Token> tokens) {
+    private int readNumber(
+            String expression,
+            int start,
+            List<Token> tokens
+    ) {
         int current = start;
 
-        while (current < expression.length() && Character.isDigit(expression.charAt(current))) {
+        while (current < expression.length()
+                && Character.isDigit(expression.charAt(current))) {
             current++;
         }
 
@@ -49,19 +59,25 @@ public final class Lexer {
             int decimalPointPosition = current;
             current++;
 
-            if (current >= expression.length() || !Character.isDigit(expression.charAt(current))) {
+            // Decimal syntax is strict: a decimal point must be followed by a digit.
+            if (current >= expression.length()
+                    || !Character.isDigit(expression.charAt(current))) {
                 String malformed = expression.substring(start, current);
-                throw LexerException.malformedNumber(malformed, decimalPointPosition);
+                throw LexerException.malformedNumber(
+                        malformed,
+                        decimalPointPosition
+                );
             }
 
-            while (current < expression.length() && Character.isDigit(expression.charAt(current))) {
+            while (current < expression.length()
+                    && Character.isDigit(expression.charAt(current))) {
                 current++;
             }
 
             if (current < expression.length() && expression.charAt(current) == '.') {
-                int secondDecimalPoint = current;
                 int malformedEnd = current + 1;
 
+                // Keep the full malformed sequence in the diagnostic (e.g. 12.34.56).
                 while (malformedEnd < expression.length()
                         && (Character.isDigit(expression.charAt(malformedEnd))
                         || expression.charAt(malformedEnd) == '.')) {
@@ -69,7 +85,7 @@ public final class Lexer {
                 }
 
                 String malformed = expression.substring(start, malformedEnd);
-                throw LexerException.malformedNumber(malformed, secondDecimalPoint);
+                throw LexerException.malformedNumber(malformed, current);
             }
         }
 
@@ -82,7 +98,11 @@ public final class Lexer {
         return current;
     }
 
-    private int readIdentifier(String expression, int start, List<Token> tokens) {
+    private int readIdentifier(
+            String expression,
+            int start,
+            List<Token> tokens
+    ) {
         int current = start;
 
         while (current < expression.length()

@@ -3,18 +3,15 @@ export type CalculationResponse = {
   result: string;
 };
 
-export type ApiErrorBody = {
+type ApiErrorBody = {
   code: string;
   message: string;
-  path: string;
 };
 
 export class CalculationApiError extends Error {
   constructor(
     readonly code: string,
-    message: string,
-    readonly path?: string,
-    readonly status?: number
+    message: string
   ) {
     super(message);
     this.name = "CalculationApiError";
@@ -37,6 +34,7 @@ export async function calculateExpression(
       body: JSON.stringify({ expression })
     });
   } catch {
+    // Normalize browser-specific fetch failures into one stable client error.
     throw new CalculationApiError(
       "NETWORK_ERROR",
       "The calculator service is unavailable. Check that the backend is running."
@@ -48,32 +46,25 @@ export async function calculateExpression(
   }
 
   const error = await readApiError(response);
-  throw new CalculationApiError(
-    error.code,
-    error.message,
-    error.path,
-    response.status
-  );
+  throw new CalculationApiError(error.code, error.message);
 }
 
 async function readApiError(response: Response): Promise<ApiErrorBody> {
   try {
     const body = (await response.json()) as Partial<ApiErrorBody>;
 
-    if (body.code && body.message) {
+    if (typeof body.code === "string" && typeof body.message === "string") {
       return {
         code: body.code,
-        message: body.message,
-        path: body.path ?? "/api/v1/calculations"
+        message: body.message
       };
     }
   } catch {
-    // The fallback below keeps the UI useful even for a non-JSON gateway error.
+    // Ignore malformed/non-JSON error bodies and use the HTTP fallback below.
   }
 
   return {
     code: "HTTP_ERROR",
-    message: `The calculator service returned HTTP ${response.status}.`,
-    path: "/api/v1/calculations"
+    message: `The calculator service returned HTTP ${response.status}.`
   };
 }

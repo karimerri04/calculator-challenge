@@ -1,4 +1,4 @@
-package com.karimmerri.calculator.core.function;
+package com.karimmerri.calculator.core.expression;
 
 import java.util.Locale;
 import java.util.Optional;
@@ -10,10 +10,6 @@ public enum FunctionName {
 
     FunctionName(String identifier) {
         this.identifier = identifier;
-    }
-
-    public String identifier() {
-        return identifier;
     }
 
     public static Optional<FunctionName> fromIdentifier(String identifier) {

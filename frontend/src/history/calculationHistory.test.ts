@@ -14,8 +14,7 @@ describe("calculation history", () => {
       (_, index) => ({
         id: String(index),
         expression: `${index}+1`,
-        result: String(index + 1),
-        createdAt: "2026-08-22T00:00:00.000Z"
+        result: String(index + 1)
       })
     );
 

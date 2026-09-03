@@ -1,15 +1,15 @@
 package com.karimmerri.calculator.core.parser;
 
-import com.karimmerri.calculator.core.ast.BinaryExpression;
-import com.karimmerri.calculator.core.ast.Expression;
-import com.karimmerri.calculator.core.ast.FunctionExpression;
-import com.karimmerri.calculator.core.ast.NumberExpression;
-import com.karimmerri.calculator.core.ast.UnaryExpression;
-import com.karimmerri.calculator.core.function.FunctionName;
+import com.karimmerri.calculator.core.expression.BinaryExpression;
+import com.karimmerri.calculator.core.expression.BinaryOperator;
+import com.karimmerri.calculator.core.expression.Expression;
+import com.karimmerri.calculator.core.expression.FunctionExpression;
+import com.karimmerri.calculator.core.expression.FunctionName;
+import com.karimmerri.calculator.core.expression.NumberExpression;
+import com.karimmerri.calculator.core.expression.UnaryExpression;
+import com.karimmerri.calculator.core.expression.UnaryOperator;
 import com.karimmerri.calculator.core.lexer.Token;
 import com.karimmerri.calculator.core.lexer.TokenType;
-import com.karimmerri.calculator.core.operator.BinaryOperator;
-import com.karimmerri.calculator.core.operator.UnaryOperator;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -25,6 +25,7 @@ public final class Parser {
             throw new IllegalArgumentException("tokens must not be empty");
         }
 
+        // Parsing state belongs to one call, keeping the shared Parser stateless.
         return new ParseSession(List.copyOf(tokens)).parse();
     }
 
@@ -42,14 +43,25 @@ public final class Parser {
 
             Expression expression = expression();
 
-            if (!isAtEnd()) {
+            if (hasRemainingTokens()) {
                 throw ParserException.unexpectedToken(peek());
             }
 
             return expression;
         }
 
-        // expression -> term (("+" | "-") term)*
+        /*
+         * Grammar, from lowest to highest precedence:
+         *
+         * expression -> term (("+" | "-") term)*
+         * term       -> unary (("*" | "/") unary)*
+         * unary      -> "-" unary | power
+         * power      -> primary ("^" unary)?
+         * primary    -> NUMBER
+         *             | "(" expression ")"
+         *             | IDENTIFIER "(" expression ")"
+         */
+
         private Expression expression() {
             Expression left = term();
 
@@ -67,7 +79,6 @@ public final class Parser {
             return left;
         }
 
-        // term -> unary (("*" | "/") unary)*
         private Expression term() {
             Expression left = unary();
 
@@ -85,7 +96,6 @@ public final class Parser {
             return left;
         }
 
-        // unary -> "-" unary | power
         private Expression unary() {
             if (match(TokenType.MINUS)) {
                 return new UnaryExpression(
@@ -97,8 +107,10 @@ public final class Parser {
             return power();
         }
 
-        // power -> primary ("^" unary)?
-        // Recursive structure makes exponentiation right-associative.
+        /*
+         * Recursion on the right makes exponentiation right-associative:
+         * 2^3^2 -> 2^(3^2), while power still binds before unary minus.
+         */
         private Expression power() {
             Expression left = primary();
 
@@ -115,7 +127,6 @@ public final class Parser {
             return left;
         }
 
-        // primary -> NUMBER | "(" expression ")" | IDENTIFIER "(" expression ")"
         private Expression primary() {
             if (match(TokenType.NUMBER)) {
                 Token number = previous();
@@ -198,21 +209,19 @@ public final class Parser {
             return peek().type() == type;
         }
 
-        private Token advance() {
-            if (!isAtEnd()) {
+        private void advance() {
+            if (hasRemainingTokens()) {
                 current++;
             }
-
-            return previous();
         }
 
-        private boolean isAtEnd() {
-            return peek().type() == TokenType.EOF;
+        private boolean hasRemainingTokens() {
+            return peek().type() != TokenType.EOF;
         }
 
         private Token peek() {
             if (current >= tokens.size()) {
-                Token last = tokens.get(tokens.size() - 1);
+                Token last = tokens.getLast();
                 throw new IllegalArgumentException(
                         "Token stream must terminate with EOF; last token was "
                                 + last.type()
@@ -239,7 +248,7 @@ public final class Parser {
         }
 
         private void ensureEofExists() {
-            if (tokens.get(tokens.size() - 1).type() != TokenType.EOF) {
+            if (tokens.getLast().type() != TokenType.EOF) {
                 throw new IllegalArgumentException(
                         "Token stream must terminate with EOF"
                 );
